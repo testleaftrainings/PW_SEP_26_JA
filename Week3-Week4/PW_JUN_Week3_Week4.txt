@@ -1,0 +1,544 @@
+Topics covered in the session :
+
+Week3 Day1 :  Playwright Locators
+Week3 Day2 :  Playwright Assertions
+
+
+================================================================================
+     WEEK 3 – ADVANCED PLAYWRIGHT INTERVIEW Q&A (SENIOR SDET LEVEL)
+================================================================================
+
+
+DAY 1 – PLAYWRIGHT LOCATORS (REAL-TIME + ADVANCED)
+================================================================================
+
+1. Strict Mode Violation
+--------------------------------------------------------------------------------
+
+Q: Why does Playwright throw Strict Mode Violation and how do you fix it in real
+   projects?
+
+A: • Playwright expects ONE unique element per locator
+   • If multiple elements match → throws error
+
+   Real Problem:
+   page.locator('#button') // matches multiple elements
+
+   Fix Approach:
+   • Use role-based locator
+   • Add exact text match
+   • Handle dynamic elements like loaders
+
+   Example:
+   await expect(page.locator('.spinner')).toBeHidden();
+   await page.getByRole('button', { name: 'Submit', exact: true }).click();
+
+   Senior Insight: Locator should always represent user intention.
+
+
+2. Locator Stability in Dynamic UI
+--------------------------------------------------------------------------------
+
+Q: How do you design stable locators in React/Angular apps?
+
+A: • Avoid DOM-based XPath
+   • Use:
+     - getByRole()
+     - getByLabel()
+     - data-testid
+
+   Why?
+   • UI structure changes frequently
+   • Attributes remain stable
+
+
+3. Handling Multiple Matching Elements
+--------------------------------------------------------------------------------
+
+Q: Locator matches multiple elements. What will you do?
+
+A: • Validate count:
+   await locator.count();
+
+   • Fix:
+   locator.nth(0) OR refine locator with text/role
+
+
+4. Relative XPath in Tables
+--------------------------------------------------------------------------------
+
+Q: How do you handle dynamic tables?
+
+A: • Use text anchor → navigate relative
+
+   XPath: //tr[td[text()='John']]//button[@class='edit']
+
+   Why: IDs change, text remains stable
+
+
+5. Locator inside iframe
+--------------------------------------------------------------------------------
+
+Q: Element inside iframe is not found. Why?
+
+A: • Must switch context
+
+   Example:
+   page.frameLocator('#frame').getByText('Submit').click();
+
+
+5. Locator values inside Table
+--------------------------------------------------------------------------------
+
+Q: Element inside iframe is not found. Why?
+
+A: • Must switch context
+
+   Example:
+   page.frameLocator('#frame').getByText('Submit').click();
+
+
+================================================================================
+DAY 2 – ASSERTIONS & TYPESCRIPT FUNDAMENTALS
+================================================================================
+
+6. Web-First Assertion (Core Playwright Concept)
+--------------------------------------------------------------------------------
+
+Q: Why are Playwright assertions called "web-first"?
+
+A: • They auto-retry until condition passes or timeout
+   • Eliminates need for manual waits
+
+   Example:
+   await expect(locator).toBeVisible();
+
+   Senior Insight: Assertions = synchronization tool
+
+
+7. Hard vs Soft Assertion (Real Scenario)
+--------------------------------------------------------------------------------
+
+Q: When do you use soft assertions?
+
+A: • Non-critical validations:
+     - UI labels
+     - Footer links
+
+   Example:
+   await expect.soft(locator).toHaveText('Welcome');
+
+   Important:
+   • Test continues execution
+   • Failure reported at end
+
+
+8. Assertion Timeout Strategy
+--------------------------------------------------------------------------------
+
+Q: Modal disappears after 6 sec but default timeout is 5 sec. What will you do?
+
+A: • Override locally
+   await expect(locator).toBeHidden({ timeout: 6000 });
+
+   Avoid: Increasing global timeout
+
+
+9. Static vs Retry Assertion
+--------------------------------------------------------------------------------
+
+Q: Difference between:
+   expect(value)
+   await expect(page).toHaveURL()
+
+A: • expect(value) → no retry
+   • toHaveURL() → retries
+
+   Best Practice: Always use retry assertions for UI
+
+===============================================================================
+     WEEK 4 – ADVANCED PLAYWRIGHT INTERVIEW Q&A (SENIOR SDET LEVEL)
+================================================================================
+
+
+DAY 1 – FRAMES
+================================================================================
+
+1. Nested Frames with Dynamic IDs
+--------------------------------------------------------------------------------
+
+Q: You're testing a legacy application that has three levels of nested iframes. 
+The innermost iframe contains the elements you need to interact with, but its 
+id attribute changes on every page reload (e.g., frame_4829, frame_9301, etc.). 
+The outer iframe IDs are static. How would you locate and work with that dynamic 
+inner iframe in Playwright? Please explain your approach and write the code to 
+click a button inside that dynamic iframe.?
+
+A: • Never rely on dynamic IDs
+   • Use stable attributes + frameLocator()
+   • Playwright auto-waits for frames
+
+   Example:
+   const outer = page.frameLocator('iframe[id="transaction-container"]');
+   const inner = outer.frameLocator('iframe');
+   await inner.getByRole('button', { name: 'Submit Transaction' }).click();
+
+   Senior Insight: Playwright eliminates need for manual frame switching unlike
+   Selenium.
+
+
+2. Frame Load Timing Issue
+--------------------------------------------------------------------------------
+
+Q: In one of your test suites, you're interacting with an <iframe> (frame) that 
+sometimes takes 5–10 seconds to load its content. Your test frequently fails 
+because Playwright tries to interact with elements inside the frame before it's
+fully loaded. How would you handle this situation in Playwright to make the test 
+reliable without using arbitrary wait(5000) delays? 
+
+A: • frameLocator() automatically waits
+   • Avoid explicit waits like waitForTimeout()
+
+   If needed:
+   await expect(inner.getByRole('button')).toBeVisible();
+
+   ✅ Approach 1: Use frameLocator() - Best Practice
+   const frame = page.frameLocator('iframe[data-test="payment-frame"]');
+   await frame.getByRole('button', { name: 'Pay Now' }).click();
+
+   ✅ Approach 2: Explicit Assertion Before Action
+   const button = frame.getByRole('button', { name: 'Pay Now' });
+   await expect(button).toBeVisible();
+   await button.click();
+
+   ✅ Approach 3: Wait for Frame to be Attached
+   await expect(page.locator('iframe[data-test="payment-frame"]')).toBeAttached();
+
+   ✅ Approach 4: Wait for Specific Content Inside Frame
+   await expect(frame.getByText('Transaction Successful')).toBeVisible();
+
+   ❌ What NOT to do:
+   await page.waitForTimeout(5000); // Bad practice - flaky and slow
+
+
+
+3. Multiple Frames on Page
+--------------------------------------------------------------------------------
+
+Q: You're testing a dashboard that contains 6–8 iframes on the same page. Each iframe
+loads different widgets (charts, forms, tables). None of them have stable IDs — some 
+have dynamic names, others have no name or id attributes at all. You need to click a 
+'Refresh' button inside the third widget's iframe. How would you identify and target 
+the correct frame in Playwright? Show me at least two different reliable approaches
+
+A: • Use name, title, or data-* attributes
+
+   ✅ Approach 1: Index-Based Targeting (When order is stable)
+   const thirdFrame = page.frameLocator('iframe').nth(2);
+   await thirdFrame.getByRole('button', { name: 'Refresh' }).click();
+
+   ✅ Approach 2: Content-Based Frame Identification (Best Practice)
+   const count = await page.locator('iframe').count();
+   for (let i = 0; i < count; i++) {
+     const frame = page.frameLocator('iframe').nth(i);
+     if (await frame.getByText('Sales Chart').isVisible()) {
+       await frame.getByRole('button', { name: 'Refresh' }).click();
+       break;
+     }
+   }
+
+   ✅ Approach 3: Using Parent Container (Highly Recommended)
+   const widget = page.locator('.widget-container', { hasText: 'Sales' });
+   const frame = widget.frameLocator('iframe');
+   await frame.getByRole('button', { name: 'Refresh' }).click();
+
+
+
+================================================================================
+DAY 1 – WINDOW HANDLING
+================================================================================
+
+4. Handling New Tab / Window
+--------------------------------------------------------------------------------
+
+Q:You're automating a flow where clicking a 'Print Preview' button opens a new browser 
+tab. You need to verify that the new tab contains a specific text ('Invoice #1234') and 
+then close that tab to return to the original tab for the next step. How would you handle 
+this in Playwright? Please write the code and mention any edge cases or common pitfalls.
+
+A: const [newPage] = await Promise.all([
+     context.waitForEvent('page'),
+     page.click('#open')
+   ]);
+   await newPage.waitForLoadState();
+
+   Full Example:
+   const [newPage] = await Promise.all([
+     context.waitForEvent('page'),
+     page.getByRole('button', { name: 'Print Preview' }).click()
+   ]);
+
+   await newPage.waitForLoadState();
+   await expect(newPage.getByText('Invoice #1234')).toBeVisible();
+   await newPage.close();
+   await expect(page).toHaveTitle(/Dashboard/);
+
+   ⚠️ Common Pitfalls:
+   • Not using Promise.all() → may miss event
+   • Not waiting for page load → flaky assertions
+   • Using wrong context → use context.waitForEvent('page')
+   • Not closing tab → memory leaks
+
+
+5. Multiple Windows Handling
+--------------------------------------------------------------------------------
+
+Q: You're testing a multi-step workflow that spans three different pages (not tabs — 
+actual browser windows/pages). Step 1: Login on page A. Step 2: Click a link that opens 
+page B in a new window. Step 3: On page B, click a button that opens page C. Then you need 
+to go back to page A to verify a toast notification appeared. How would you manage navigation 
+between these three pages in Playwright? Show code for switching, verifying, and closing pages. 
+Also explain how this differs from handling multiple tabs.
+
+A: • Use browser context and keep page references
+
+   Example:
+   const pages = context.pages();
+   await pages[1].bringToFront();
+
+   Full Solution:
+   // Page A - Login
+   await page.goto('https://app.example.com/login');
+   await page.fill('#username', 'user');
+   await page.fill('#password', 'pass');
+   await page.click('#login');
+
+   // Open Page B
+   const [pageB] = await Promise.all([
+     context.waitForEvent('page'),
+     page.getByRole('link', { name: 'Open Details' }).click()
+   ]);
+   await pageB.waitForLoadState();
+
+   // Open Page C from Page B
+   const [pageC] = await Promise.all([
+     context.waitForEvent('page'),
+     pageB.getByRole('button', { name: 'Open Report' }).click()
+   ]);
+   await pageC.waitForLoadState();
+
+   // Close Page C and return to B
+   await pageC.close();
+   await pageB.bringToFront();
+
+   // Close Page B and return to A
+   await pageB.close();
+   await page.bringToFront();
+
+   // Verify toast on Page A
+   await expect(page.locator('.toast-message')).toBeVisible();
+
+
+
+6. Popup Block Issue
+--------------------------------------------------------------------------------
+
+Q: Popup not captured. Why?
+
+A: • Listener not attached before action
+
+ Fix:
+   const [popup] = await Promise.all([
+     context.waitForEvent('page'),
+     page.click('#open-popup')
+   ]);
+
+================================================= DATA PARAMETERIZATION - - JSON & CSV
+================================================================================
+
+
+===============================
+QUESTION 1
+================================================================================
+
+Q: You're testing a login flow with 50 different user accounts (admin, guest,
+viewer, editor, etc.). Writing 50 separate tests or hardcoding credentials
+inside each test is not maintainable. How would data parameterization help here?
+Explain the benefits and show a practical example using Playwright's test.each()
+or a data file.
+
+A: I would use data parameterization so the same login test runs with multiple
+user accounts using one reusable test flow. It improves maintainability, reduces
+duplicate code, and makes adding new users as simple as updating a data file.
+It also gives better coverage because we can validate different roles
+consistently.
+
+Example:
+----------------------------------------------------------------------------
+import { test, expect } from '@playwright/test';
+
+const users = [
+  { role: 'admin', username: 'admin1', password: 'pass1' },
+  { role: 'guest', username: 'guest1', password: 'pass2' },
+  { role: 'viewer', username: 'viewer1', password: 'pass3' }
+];
+
+users.forEach(user => {
+  test(`Login as ${user.role}`, async ({ page }) => {
+    await page.goto('/login');
+    await page.fill('#username', user.username);
+    await page.fill('#password', user.password);
+    await page.click('#login');
+    await expect(page).toHaveURL(/dashboard/);
+  });
+});
+----------------------------------------------------------------------------
+
+In real projects, I'd usually keep this data in JSON or CSV instead of
+hardcoding.
+
+Interviewer tip: They are checking whether you understand scalable test design,
+reusability, and data-driven testing in Playwright.
+
+
+================================================================================
+QUESTION 2
+================================================================================
+
+Q: Your test suite needs to validate checkout functionality with 20 different
+product configurations (different prices, quantities, discounts). All this test
+data is stored in a test-data.json file maintained by the business team. How
+would you read and use this JSON data in your Playwright tests? Show the code to
+import the file and loop through multiple test cases.
+
+A: I would keep the business-owned JSON file separate from test logic and read
+it directly into the Playwright test. Then I'd loop through each product
+configuration and run the same checkout validation for every dataset. This keeps
+the tests clean and allows the business team to update data without changing
+code.
+
+Example:
+----------------------------------------------------------------------------
+import { test, expect } from '@playwright/test';
+import testData from './test-data.json';
+
+testData.forEach((item) => {
+  test(`Checkout for ${item.productName}`, async ({ page }) => {
+    await page.goto('/shop');
+
+    await page.fill('#quantity', item.quantity.toString());
+    await page.fill('#discount', item.discount.toString());
+    await page.click(`text=${item.productName}`);
+    await page.click('#checkout');
+
+    await expect(page.locator('#totalPrice'))
+      .toHaveText(item.expectedTotal.toString());
+  });
+});
+----------------------------------------------------------------------------
+
+Example test-data.json:
+----------------------------------------------------------------------------
+[
+  {
+    "productName": "Laptop",
+    "quantity": 2,
+    "discount": 10,
+    "expectedTotal": 1800
+  },
+  {
+    "productName": "Phone",
+    "quantity": 1,
+    "discount": 5,
+    "expectedTotal": 950
+  }
+]
+----------------------------------------------------------------------------
+
+In larger frameworks, I'd also validate the JSON schema to avoid bad test data
+breaking the suite.
+
+Interviewer tip: They want to see if you can separate test data from test logic
+and build maintainable data-driven Playwright tests.
+
+
+================================================================================
+QUESTION 3
+================================================================================
+
+Q: Your QA team has provided a CSV file with 500 rows of test data for form
+validation (name, email, phone, address). They update this file daily and expect
+the tests to use the latest data. How would you read this CSV file in Playwright
+and run the same test for each row? Include handling for headers, empty rows,
+and special characters.
+
+A: I would read the CSV at runtime so the suite always uses the latest daily
+file. I'd parse the headers into objects, filter empty rows, and use a proper
+CSV parser to safely handle commas, quotes, and special characters. Then I'd
+loop through each record and run the same validation flow.
+
+Example:
+----------------------------------------------------------------------------
+import { test, expect } from '@playwright/test';
+import fs from 'fs';
+import { parse } from 'csv-parse/sync';
+
+const file = fs.readFileSync('./test-data.csv', 'utf-8');
+
+const records = parse(file, {
+  columns: true,          // uses header row
+  skip_empty_lines: true,
+  trim: true
+});
+
+records.forEach((row: any, index: number) => {
+  test(`Form validation row ${index + 1}`, async ({ page }) => {
+    await page.goto('/form');
+
+    await page.fill('#name', row.name);
+    await page.fill('#email', row.email);
+    await page.fill('#phone', row.phone);
+    await page.fill('#address', row.address);
+
+    await page.click('#submit');
+    await expect(page.locator('.success-msg')).toBeVisible();
+  });
+});
+----------------------------------------------------------------------------
+
+Using a parser is important because manual split(',') can fail when addresses
+contain commas or quotes.
+
+Interviewer tip: They're checking whether you know real-world data-driven
+testing, file handling, and why robust parsing is better than quick hacks.
+
+
+================================================================================
+QUESTION 4
+================================================================================
+
+Q: Your team is deciding between JSON and CSV for storing test data. You have
+nested data structures (like an order with multiple line items) and also flat
+data (like 50 login credentials). Compare JSON vs CSV for: readability,
+maintainability, support for complex data types, and ease of use in Playwright.
+Which one would you choose for each scenario and why?
+
+A: I'd choose based on the data shape. For nested or relational data like orders
+with multiple line items, JSON is better because it supports objects, arrays,
+and hierarchy naturally. For flat bulk data like 1000 login credentials, CSV is
+better because it's lightweight, Excel-friendly, and easy for business users to
+maintain.
+
+JSON is stronger for readability in complex scenarios, maintainability of
+structured data, and direct import into Playwright as objects. CSV is simpler
+for tabular data, mass updates, and quick filtering or editing in Excel.
+
+So in this case, I'd use JSON for order/checkout scenarios and CSV for
+login/account datasets. In real frameworks, I often use both depending on the
+module.
+
+Interviewer tip: They want to know if you can choose the right tool
+pragmatically instead of forcing one format for every scenario.
+
+
+
