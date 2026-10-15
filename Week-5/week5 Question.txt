@@ -1,0 +1,1127 @@
+================================================================================
+              TYPESCRIPT IN PLAYWRIGHT - COMPLETE Q&A (SDET LEVEL)
+================================================================================
+Topics Covered:
+  Part 1: JSON & CSV Parameterization and Typescript Fundamentals   
+  Part 2: OOPs for Playwright (Inheritance & Encapsulation& Polymorphism)
+
+
+================================================================================
+Part 1
+================================================================================
+
+QUESTION 1: TypeScript vs JavaScript for Playwright Framework
+================================================================================
+
+Q: "Your team is starting a new Playwright automation project. Some team members
+   want to use plain JavaScript because 'it's faster to write.' You advocate for
+   TypeScript. What specific benefits does TypeScript bring to an automation
+   framework that JavaScript lacks? Give concrete examples of how TypeScript
+   prevents bugs in Playwright tests."
+
+A: TypeScript provides several major advantages for a Playwright automation
+   framework compared to plain JavaScript, especially in large-scale enterprise
+   automation projects.
+
+   STATIC TYPE CHECKING:
+   TypeScript catches errors during development itself before execution.
+
+   JavaScript Problem:
+   ----------------------------------------------------------------------------
+   const username = 100;
+   await page.fill("#user", username);
+
+   Problem:
+   • fill() expects string
+   • But number is passed
+   • Error occurs only during runtime
+
+   TypeScript Solution:
+   ----------------------------------------------------------------------------
+   const username: string = 100;
+   // Error: Type 'number' is not assignable to type 'string'
+
+   Benefit: Prevents runtime failures early
+
+   ADDITIONAL BENEFITS:
+   ----------------------------------------------------------------------------
+   • Better IDE support (IntelliSense, autocomplete)
+   • Easier refactoring across 500+ tests
+   • Self-documenting code
+   • Catches null/undefined errors
+   • Better team collaboration
+
+
+QUESTION 2: Typed Parameters for Login Function
+================================================================================
+
+Q: "You're writing a login(username, password) function that will be used by
+   50+ tests. A junior developer accidentally calls it with login(12345, true)
+   — numbers and booleans instead of strings. How would TypeScript's typed
+   parameters prevent this error at compile time instead of runtime? Show the
+   function signature."
+
+A: TypeScript prevents this issue using typed parameters in the function
+   signature.
+
+   FUNCTION SIGNATURE:
+   ----------------------------------------------------------------------------
+   async function login(username: string, password: string): Promise<void> {
+     await page.fill('#username', username);
+     await page.fill('#password', password);
+     await page.click('#login');
+   }
+
+   CORRECT USAGE:
+   ----------------------------------------------------------------------------
+   login("admin", "admin123");  // ✓ Works fine
+
+   WRONG USAGE:
+   ----------------------------------------------------------------------------
+   login(12345, true);
+   // Error: Argument of type 'number' is not assignable to parameter of type 'string'
+   // Error: Argument of type 'boolean' is not assignable to parameter of type 'string'
+
+   HOW TYPESCRIPT HELPS:
+   ----------------------------------------------------------------------------
+   The error is caught during development itself, before executing the Playwright
+   test.
+
+   In JavaScript, this would execute until runtime and may fail later during:
+   await page.fill("#username", username);  // Runtime error!
+
+   BENEFIT IN AUTOMATION FRAMEWORK:
+   ----------------------------------------------------------------------------
+   TypeScript prevents invalid test data, reduces flaky failures, and makes
+   reusable framework methods safer.
+
+
+QUESTION 3: Optional Parameters in TypeScript
+================================================================================
+
+Q: "You need a searchProducts(value, filter) function where filter is only
+   needed for advanced searches. In most tests, you search without a filter.
+   How would you implement this using optional parameters in TypeScript? What
+   happens if a test passes an invalid filter type?"
+
+A: USING OPTIONAL PARAMETERS IN TYPESCRIPT:
+
+   FUNCTION:
+   ----------------------------------------------------------------------------
+   function searchProducts(value: string, filter?: string): void {
+     if (filter) {
+       console.log(`Searching ${value} with filter ${filter}`);
+     } else {
+       console.log(`Searching ${value}`);
+     }
+   }
+
+   USAGE WITHOUT FILTER:
+   ----------------------------------------------------------------------------
+   searchProducts("Laptop");
+   // Output: Searching Laptop
+
+   USAGE WITH FILTER:
+   ----------------------------------------------------------------------------
+   searchProducts("Laptop", "Electronics");
+   // Output: Searching Laptop with filter Electronics
+
+   MEANING OF ?:
+   ----------------------------------------------------------------------------
+   filter?: string
+   • filter is optional
+   • Parameter can be passed OR skipped
+
+   INVALID FILTER TYPE EXAMPLE:
+   ----------------------------------------------------------------------------
+   searchProducts("Laptop", 100);
+   // Error: Argument of type 'number' is not assignable to parameter of type 'string'
+
+   BENEFIT:
+   ----------------------------------------------------------------------------
+   TypeScript prevents invalid data types before test execution itself.
+
+   INTERVIEW POINT:
+   Optional parameters are declared using ? and TypeScript validates parameter
+   types at compile time.
+
+
+QUESTION 4: Default Parameters in TypeScript
+================================================================================
+
+Q: "In your framework, 90% of tests use a standard user role, but some tests
+   need admin or guest roles. You want a login(role) function that defaults to
+   'user' if no role is specified. How would you implement default parameters in
+   TypeScript? Show the function and how a test would override the default."
+
+A: USING DEFAULT PARAMETERS IN TYPESCRIPT:
+
+   FUNCTION:
+   ----------------------------------------------------------------------------
+   function login(role: string = "user"): void {
+     console.log(`Login with ${role} role`);
+   }
+
+   DEFAULT BEHAVIOR:
+   ----------------------------------------------------------------------------
+   login();
+   // Output: Login with user role
+
+   Reason: If no value is passed, "user" is assigned automatically
+
+   OVERRIDE DEFAULT VALUE:
+   ----------------------------------------------------------------------------
+   login("admin");
+   login("guest");
+   // Output: Login with admin role
+   // Output: Login with guest role
+
+   HOW DEFAULT PARAMETERS WORK:
+   ----------------------------------------------------------------------------
+   role: string = "user"
+   • If argument is missing, default value will be used
+
+   INVALID TYPE EXAMPLE:
+   ----------------------------------------------------------------------------
+   login(100);
+   // Error: Argument of type 'number' is not assignable to parameter of type 'string'
+
+   BENEFIT IN AUTOMATION FRAMEWORK:
+   ----------------------------------------------------------------------------
+   login();          // standard user
+   login("admin");   // special scenario
+
+   Reduces repetitive code, improves readability, and keeps common test
+   scenarios simple.
+
+
+QUESTION 5: Boolean Return Type Importance
+================================================================================
+
+Q: "You have a isElementVisible(selector) function. Without a return type,
+   another developer might assume it returns a string or number and write buggy
+   assertions. Why is defining a boolean return type critical in TypeScript?
+   What happens at compile time if the function accidentally returns something
+   else?"
+
+A: Defining a boolean return type is critical because it guarantees that the
+   function always returns only true or false.
+
+   CORRECT FUNCTION SIGNATURE:
+   ----------------------------------------------------------------------------
+   function isElementVisible(selector: string): boolean {
+     const element = page.locator(selector);
+     return element.isVisible();
+   }
+
+   USAGE IN PLAYWRIGHT TEST:
+   ----------------------------------------------------------------------------
+   const result = isElementVisible("#login");
+   if (result) {
+     console.log("Element Visible");
+   }
+
+   Safe because result is guaranteed to be boolean.
+
+   PROBLEM WITHOUT RETURN TYPE:
+   ----------------------------------------------------------------------------
+   function isElementVisible(selector) {
+     return "visible";  // returns string instead of boolean
+   }
+
+   Another developer may write:
+   expect(isElementVisible("#login")).toBe(true);
+   // Runtime Issue: Expected boolean but received string
+
+   TYPESCRIPT PREVENTS THIS:
+   ----------------------------------------------------------------------------
+   function isElementVisible(selector: string): boolean {
+     return "visible";
+   }
+   // Error: Type 'string' is not assignable to type 'boolean'
+
+   ANOTHER WRONG RETURN EXAMPLE:
+   ----------------------------------------------------------------------------
+   function isElementVisible(selector: string): boolean {
+     return 1;
+   }
+   // Error: Type 'number' is not assignable to type 'boolean'
+
+   BENEFIT IN AUTOMATION FRAMEWORK:
+   ----------------------------------------------------------------------------
+   • Ensures predictable function behavior
+   • Prevents invalid assertions
+   • Reduces flaky test failures
+   • Improves framework reliability
+
+   INTERVIEW POINT:
+   Return types enforce output consistency. TypeScript validates the returned
+   value during compilation itself.
+
+
+QUESTION 6: First Non-Repeating Character - Complexity Analysis
+================================================================================
+
+Q: "You're processing user input strings and need to find the first character
+   that does not repeat. You write two solutions: one using nested loops,
+   another using indexOf and lastIndexOf. Compare the time complexity of both
+   approaches. Which would you use for a 100,000-character string and why?"
+
+A: COMPARING BOTH APPROACHES:
+
+   APPROACH 1: Nested Loops
+   ----------------------------------------------------------------------------
+   function firstNonRepeatedChar(str: string): string | null {
+     for (let i = 0; i < str.length; i++) {
+       let isRepeated = false;
+       for (let j = 0; j < str.length; j++) {
+         if (i !== j && str[i] === str[j]) {
+           isRepeated = true;
+           break;
+         }
+       }
+       if (!isRepeated) {
+         return str[i];
+       }
+     }
+     return null;
+   }
+
+   Time Complexity: O(n²) - Quadratic
+   • For each character, compares with all other characters
+   • For 100,000 characters → ~10 billion operations
+   • Very slow for large strings
+
+   APPROACH 2: indexOf and lastIndexOf
+   ----------------------------------------------------------------------------
+   function firstNonRepeatedChar(str: string): string | null {
+     for (let char of str) {
+       if (str.indexOf(char) === str.lastIndexOf(char)) {
+         return char;
+       }
+     }
+     return null;
+   }
+
+   Time Complexity: O(n²) in worst case
+   • indexOf and lastIndexOf each scan the string
+   • Each is O(n) per character
+   • Total O(n²) worst case
+
+   OPTIMAL APPROACH: Frequency Map
+   ----------------------------------------------------------------------------
+   function firstNonRepeatedChar(str: string): string | null {
+     const freq = new Map<string, number>();
+
+     // First pass: count frequencies - O(n)
+     for (let char of str) {
+       freq.set(char, (freq.get(char) || 0) + 1);
+     }
+
+     // Second pass: find first with count 1 - O(n)
+     for (let char of str) {
+       if (freq.get(char) === 1) {
+         return char;
+       }
+     }
+     return null;
+   }
+
+   Time Complexity: O(n) - Linear
+   • Two passes through the string
+   • For 100,000 characters → ~200,000 operations
+   • Much faster than O(n²)
+
+   RECOMMENDATION FOR 100,000 CHARACTER STRING:
+   ----------------------------------------------------------------------------
+   Use Frequency Map approach because:
+   • O(n) time complexity is efficient for large inputs
+   • ~200,000 operations vs ~10 billion operations
+   • Memory usage is manageable (at most 26 or 52 unique characters)
+
+   INTERVIEW POINT:
+   For large strings, always prefer O(n) frequency map over O(n²) nested loops.
+
+
+QUESTION 7: Merging Arrays with Set for Large Data
+================================================================================
+
+Q: "Your API returns two arrays of product IDs from different sources. You need
+   to merge them into a single unique list. Your current solution uses nested
+   loops and includes(). How would you optimize this for arrays with 10,000+
+   items? Show an alternative using Set and explain the performance difference."
+
+A: CURRENT SOLUTION (Nested Loops + includes):
+   ----------------------------------------------------------------------------
+   let arr1 = [1, 2, 3, 4];
+   let arr2 = [3, 4, 5, 6];
+   let result = [];
+
+   for (let value of arr1) {
+     if (!result.includes(value)) {
+       result.push(value);
+     }
+   }
+
+   for (let value of arr2) {
+     if (!result.includes(value)) {
+       result.push(value);
+     }
+   }
+
+   Time Complexity: O(n²)
+   • includes() scans the entire result array
+   • For 10,000 items → ~100 million operations
+   • Very slow
+
+   OPTIMIZED SOLUTION (Using Set):
+   ----------------------------------------------------------------------------
+   let arr1 = [1, 2, 3, 4];
+   let arr2 = [3, 4, 5, 6];
+
+   let mergedSet = new Set([...arr1, ...arr2]);
+   let result = [...mergedSet];
+
+   console.log(result); // [1, 2, 3, 4, 5, 6]
+
+   Time Complexity: O(n) - Linear
+   • Set has O(1) lookup time
+   • For 10,000 items → ~20,000 operations
+   • Much faster than O(n²)
+
+   PERFORMANCE COMPARISON:
+   ----------------------------------------------------------------------------
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │ Array Size    │ Nested Loops (O(n²))  │ Set Approach (O(n))            │
+   ├───────────────┼───────────────────────┼────────────────────────────────┤
+   │ 1,000         │ ~1 million ops        │ ~2,000 ops                     │
+   │ 10,000        │ ~100 million ops      │ ~20,000 ops                    │
+   │ 50,000        │ ~2.5 billion ops      │ ~100,000 ops                   │
+   │ 100,000       │ ~10 billion ops       │ ~200,000 ops                   │
+   └───────────────┴───────────────────────┴────────────────────────────────┘
+
+   ADVANCED OPTIMIZATION (For extremely large arrays):
+   ----------------------------------------------------------------------------
+   function mergeUnique(arr1: number[], arr2: number[]): number[] {
+     const set = new Set<number>();
+
+     // Add all items from both arrays
+     for (const item of arr1) set.add(item);
+     for (const item of arr2) set.add(item);
+
+     return Array.from(set);
+   }
+
+   WHY SET IS FASTER:
+   ----------------------------------------------------------------------------
+   • Set uses hash table internally (O(1) lookup)
+   • Array.includes() scans sequentially (O(n))
+   • No duplicate checking overhead
+   • Built-in deduplication
+
+   BENEFIT IN API TESTING:
+   ----------------------------------------------------------------------------
+   • Faster test execution
+   • Better performance with large datasets
+   • Cleaner, more readable code
+   • Reduced memory usage
+
+
+QUESTION 8: Enum Validation with Type Guards
+================================================================================
+
+Q: "Your Playwright test calls an API that returns status as either 'SUCCESS'
+   or 'FAIL'. You want to match this against an enum. The current code uses
+   in operator, but it has a bug: what if the API returns 'SUCCESSFUL'? How
+   would you improve this to be more type-safe using a type guard or custom
+   assertion?"
+
+A: PROBLEM WITH in OPERATOR:
+   ----------------------------------------------------------------------------
+   enum Status {
+     SUCCESS = "SUCCESS",
+     FAIL = "FAIL"
+   }
+
+   const apiResponse = "SUCCESSFUL";
+
+   if (apiResponse in Status) {
+     console.log("Valid Status");  // This still runs!
+   }
+
+   Issue: in operator checks property names, not exact enum values.
+   This may create unexpected validation issues.
+
+   BETTER APPROACH: TYPE GUARD
+   ----------------------------------------------------------------------------
+   enum Status {
+     SUCCESS = "SUCCESS",
+     FAIL = "FAIL"
+   }
+
+   function isValidStatus(value: string): value is Status {
+     return Object.values(Status).includes(value as Status);
+   }
+
+   Usage:
+   const apiResponse = "SUCCESSFUL";
+
+   if (isValidStatus(apiResponse)) {
+     console.log("Valid Status");
+   } else {
+     console.log("Invalid Status");
+   }
+   // Output: Invalid Status
+
+   Correct API Response:
+   const apiResponse = "SUCCESS";
+
+   if (isValidStatus(apiResponse)) {
+     console.log("Valid Status");  // Output: Valid Status
+   }
+
+   WHY TYPE GUARD IS SAFER:
+   ----------------------------------------------------------------------------
+   Type Guard: value is Status
+
+   Meaning: After validation, TypeScript treats the value as Status type.
+
+   BENEFIT IN PLAYWRIGHT/API FRAMEWORK:
+   ----------------------------------------------------------------------------
+   Prevents invalid API responses from entering business logic.
+
+   if (apiResponse === Status.SUCCESS) {
+     // Now fully type-safe
+   }
+
+   ALTERNATIVE: CUSTOM ASSERTION
+   ----------------------------------------------------------------------------
+   function assertValidStatus(value: string): asserts value is Status {
+     if (!Object.values(Status).includes(value as Status)) {
+       throw new Error(`Invalid Status: ${value}`);
+     }
+   }
+
+   Usage:
+   const apiResponse = "SUCCESSFUL";
+   assertValidStatus(apiResponse);  // Throws Error: Invalid Status: SUCCESSFUL
+
+   INTERVIEW POINT:
+   Type guards and custom assertions improve enum validation by checking exact
+   enum values instead of property names.
+
+
+QUESTION 9: Reusable clickElement Utility with TypeScript
+================================================================================
+
+Q: "Your Playwright framework has 500+ tests. You notice the same
+   await page.locator('#submit').click() pattern repeated everywhere. Your lead
+   asks you to design a reusable clickElement utility. How would you implement
+   this with proper TypeScript types? Why is typing the Locator parameter and
+   Promise<void> return type important for framework scalability?"
+
+A: REUSABLE UTILITY IMPLEMENTATION:
+   ----------------------------------------------------------------------------
+   import { Locator } from "@playwright/test";
+
+   export async function clickElement(element: Locator): Promise<void> {
+     await element.click();
+   }
+
+   USAGE IN TEST:
+   ----------------------------------------------------------------------------
+   await clickElement(page.locator("#submit"));
+
+   WHY Locator TYPE IS IMPORTANT:
+   ----------------------------------------------------------------------------
+   element: Locator
+
+   Meaning: Only Playwright Locator objects are allowed
+
+   Wrong Usage:
+   await clickElement("#submit");
+   // Error: Argument of type 'string' is not assignable to parameter of type 'Locator'
+
+   Benefit: Prevents invalid objects from being passed
+
+   WHY Promise<void> IS IMPORTANT:
+   ----------------------------------------------------------------------------
+   Promise<void> means:
+   • Function is asynchronous
+   • Returns no value
+
+   Benefit:
+   • Developers know function must be awaited
+   • Prevents misuse in assertions
+   • Improves IntelliSense/documentation
+
+   Wrong Return Example:
+   export async function clickElement(element: Locator): Promise<void> {
+     return "clicked";
+   }
+   // Error: Type 'string' is not assignable to type 'void'
+
+   ENTERPRISE-LEVEL IMPROVED VERSION:
+   ----------------------------------------------------------------------------
+   import { Locator } from "@playwright/test";
+
+   export async function clickElement(
+     element: Locator,
+     elementName?: string
+   ): Promise<void> {
+     await element.waitFor({ state: "visible" });
+     console.log(`Clicking on ${elementName || "element"}`);
+     await element.click();
+   }
+
+   Usage:
+   await clickElement(page.locator("#submit"), "Submit Button");
+
+   FRAMEWORK SCALABILITY BENEFITS:
+   ----------------------------------------------------------------------------
+   1. Centralized Maintenance:
+      If click handling changes, update only one utility.
+      await element.click({ force: true });
+      All 500 tests automatically benefit.
+
+   2. Better Error Handling:
+      export async function clickElement(element: Locator): Promise<void> {
+        try {
+          await element.click();
+        } catch (error) {
+          console.log("Click Failed");
+          throw error;
+        }
+      }
+
+   3. Reusability:
+      Avoids duplicated code across hundreds of tests.
+
+   4. Strong Type Safety:
+      Compile-time validation reduces framework misuse.
+
+   5. Better IntelliSense:
+      TypeScript auto-suggests Locator methods and validations.
+
+   INTERVIEW POINT:
+   Strong typing in reusable utilities improves scalability, maintainability,
+   IntelliSense support, and prevents incorrect usage across large automation
+   frameworks.
+
+
+QUESTION 10: Discriminated Unions for Test Results
+================================================================================
+
+Q: "Your test framework handles three types of test results:
+   { status: 'passed', duration: number },
+   { status: 'failed', error: string, screenshot: string }, and
+   { status: 'skipped', reason: string }.
+   How would you use discriminated unions in TypeScript to safely handle each
+   case without type assertions? Write a function that processes each result
+   type."
+
+A: DISCRIMINATED UNIONS IN TYPESCRIPT:
+
+   Used when multiple object types share a common property.
+   TypeScript automatically identifies the correct type based on that property.
+
+   STEP 1: Define Result Types
+   ----------------------------------------------------------------------------
+   type PassedResult = {
+     status: "passed";
+     duration: number;
+   };
+
+   type FailedResult = {
+     status: "failed";
+     error: string;
+     screenshot: string;
+   };
+
+   type SkippedResult = {
+     status: "skipped";
+     reason: string;
+   };
+
+   STEP 2: Create Union Type
+   ----------------------------------------------------------------------------
+   type TestResult = PassedResult | FailedResult | SkippedResult;
+
+   STEP 3: Process Function
+   ----------------------------------------------------------------------------
+   function processResult(result: TestResult): void {
+     switch (result.status) {
+       case "passed":
+         console.log(`Test Passed in ${result.duration} ms`);
+         break;
+
+       case "failed":
+         console.log(`Test Failed`);
+         console.log(`Error: ${result.error}`);
+         console.log(`Screenshot: ${result.screenshot}`);
+         break;
+
+       case "skipped":
+         console.log(`Test Skipped`);
+         console.log(`Reason: ${result.reason}`);
+         break;
+     }
+   }
+
+   USAGE EXAMPLES:
+   ----------------------------------------------------------------------------
+   // Passed result
+   processResult({
+     status: "passed",
+     duration: 1200
+   });
+
+   // Failed result
+   processResult({
+     status: "failed",
+     error: "Login Failed",
+     screenshot: "error.png"
+   });
+
+   // Skipped result
+   processResult({
+     status: "skipped",
+     reason: "Environment Down"
+   });
+
+   OUTPUT:
+   ----------------------------------------------------------------------------
+   Test Passed in 1200 ms
+   Test Failed
+   Error: Login Failed
+   Screenshot: error.png
+   Test Skipped
+   Reason: Environment Down
+
+   WHY DISCRIMINATED UNION IS POWERFUL:
+   ----------------------------------------------------------------------------
+   Common property: status
+
+   TypeScript automatically narrows the type based on status value.
+
+   Example: case "failed"
+   Now TypeScript knows result is FailedResult type.
+   So result.error and result.screenshot are safely accessible.
+
+   WITHOUT DISCRIMINATED UNION:
+   ----------------------------------------------------------------------------
+   Developers may use: (result as FailedResult).error
+
+   Problems:
+   • Unsafe type assertions
+   • Runtime bugs possible
+   • Poor maintainability
+
+   COMPILE-TIME SAFETY EXAMPLE:
+   ----------------------------------------------------------------------------
+   processResult({
+     status: "passed",
+     error: "Failure"  // ❌ Compile-time error!
+   });
+   // Error: Object literal may only specify known properties
+
+   FRAMEWORK BENEFITS:
+   ----------------------------------------------------------------------------
+   • Strong type safety
+   • Cleaner framework design
+   • Better IntelliSense
+   • Safer API handling
+   • Easier maintenance for large frameworks
+
+   INTERVIEW POINT:
+   Discriminated unions use a common literal property to safely narrow object
+   types without explicit type assertions.
+
+
+
+================================================================================ 
+                    JSON & CSV Parameterization
+================================================================================
+QUESTION 1
+================================================================================
+
+Q: You're testing a login flow with 50 different user accounts (admin, guest,
+viewer, editor, etc.). Writing 50 separate tests or hardcoding credentials
+inside each test is not maintainable. How would data parameterization help here?
+Explain the benefits and show a practical example using Playwright's test.each()
+or a data file.
+
+A: I would use data parameterization so the same login test runs with multiple
+user accounts using one reusable test flow. It improves maintainability, reduces
+duplicate code, and makes adding new users as simple as updating a data file.
+It also gives better coverage because we can validate different roles
+consistently.
+
+Example:
+----------------------------------------------------------------------------
+import { test, expect } from '@playwright/test';
+
+const users = [
+  { role: 'admin', username: 'admin1', password: 'pass1' },
+  { role: 'guest', username: 'guest1', password: 'pass2' },
+  { role: 'viewer', username: 'viewer1', password: 'pass3' }
+];
+
+users.forEach(user => {
+  test(`Login as ${user.role}`, async ({ page }) => {
+    await page.goto('/login');
+    await page.fill('#username', user.username);
+    await page.fill('#password', user.password);
+    await page.click('#login');
+    await expect(page).toHaveURL(/dashboard/);
+  });
+});
+----------------------------------------------------------------------------
+
+In real projects, I'd usually keep this data in JSON or CSV instead of
+hardcoding.
+
+Interviewer tip: They are checking whether you understand scalable test design,
+reusability, and data-driven testing in Playwright.
+
+
+================================================================================
+QUESTION 2
+================================================================================
+
+Q: Your test suite needs to validate checkout functionality with 20 different
+product configurations (different prices, quantities, discounts). All this test
+data is stored in a test-data.json file maintained by the business team. How
+would you read and use this JSON data in your Playwright tests? Show the code to
+import the file and loop through multiple test cases.
+
+A: I would keep the business-owned JSON file separate from test logic and read
+it directly into the Playwright test. Then I'd loop through each product
+configuration and run the same checkout validation for every dataset. This keeps
+the tests clean and allows the business team to update data without changing
+code.
+
+Example:
+----------------------------------------------------------------------------
+import { test, expect } from '@playwright/test';
+import testData from './test-data.json';
+
+testData.forEach((item) => {
+  test(`Checkout for ${item.productName}`, async ({ page }) => {
+    await page.goto('/shop');
+
+    await page.fill('#quantity', item.quantity.toString());
+    await page.fill('#discount', item.discount.toString());
+    await page.click(`text=${item.productName}`);
+    await page.click('#checkout');
+
+    await expect(page.locator('#totalPrice'))
+      .toHaveText(item.expectedTotal.toString());
+  });
+});
+----------------------------------------------------------------------------
+
+Example test-data.json:
+----------------------------------------------------------------------------
+[
+  {
+    "productName": "Laptop",
+    "quantity": 2,
+    "discount": 10,
+    "expectedTotal": 1800
+  },
+  {
+    "productName": "Phone",
+    "quantity": 1,
+    "discount": 5,
+    "expectedTotal": 950
+  }
+]
+----------------------------------------------------------------------------
+
+In larger frameworks, I'd also validate the JSON schema to avoid bad test data
+breaking the suite.
+
+Interviewer tip: They want to see if you can separate test data from test logic
+and build maintainable data-driven Playwright tests.
+
+
+================================================================================
+QUESTION 3
+================================================================================
+
+Q: Your QA team has provided a CSV file with 500 rows of test data for form
+validation (name, email, phone, address). They update this file daily and expect
+the tests to use the latest data. How would you read this CSV file in Playwright
+and run the same test for each row? Include handling for headers, empty rows,
+and special characters.
+
+A: I would read the CSV at runtime so the suite always uses the latest daily
+file. I'd parse the headers into objects, filter empty rows, and use a proper
+CSV parser to safely handle commas, quotes, and special characters. Then I'd
+loop through each record and run the same validation flow.
+
+Example:
+----------------------------------------------------------------------------
+import { test, expect } from '@playwright/test';
+import fs from 'fs';
+import { parse } from 'csv-parse/sync';
+
+const file = fs.readFileSync('./test-data.csv', 'utf-8');
+
+const records = parse(file, {
+  columns: true,          // uses header row
+  skip_empty_lines: true,
+  trim: true
+});
+
+records.forEach((row: any, index: number) => {
+  test(`Form validation row ${index + 1}`, async ({ page }) => {
+    await page.goto('/form');
+
+    await page.fill('#name', row.name);
+    await page.fill('#email', row.email);
+    await page.fill('#phone', row.phone);
+    await page.fill('#address', row.address);
+
+    await page.click('#submit');
+    await expect(page.locator('.success-msg')).toBeVisible();
+  });
+});
+----------------------------------------------------------------------------
+
+Using a parser is important because manual split(',') can fail when addresses
+contain commas or quotes.
+
+Interviewer tip: They're checking whether you know real-world data-driven
+testing, file handling, and why robust parsing is better than quick hacks.
+
+
+================================================================================
+QUESTION 4
+================================================================================
+
+Q: Your team is deciding between JSON and CSV for storing test data. You have
+nested data structures (like an order with multiple line items) and also flat
+data (like 50 login credentials). Compare JSON vs CSV for: readability,
+maintainability, support for complex data types, and ease of use in Playwright.
+Which one would you choose for each scenario and why?
+
+A: I'd choose based on the data shape. For nested or relational data like orders
+with multiple line items, JSON is better because it supports objects, arrays,
+and hierarchy naturally. For flat bulk data like 1000 login credentials, CSV is
+better because it's lightweight, Excel-friendly, and easy for business users to
+maintain.
+
+JSON is stronger for readability in complex scenarios, maintainability of
+structured data, and direct import into Playwright as objects. CSV is simpler
+for tabular data, mass updates, and quick filtering or editing in Excel.
+
+So in this case, I'd use JSON for order/checkout scenarios and CSV for
+login/account datasets. In real frameworks, I often use both depending on the
+module.
+
+Interviewer tip: They want to know if you can choose the right tool
+pragmatically instead of forcing one format for every scenario.
+
+================================================================================
+				Part 2
+================================================================================
+    OOPs for Playwright (Inheritance & Encapsulation & Polymorphism)
+================================================================================
+QUESTION 1: Four Main OOP Principles in Playwright Framework
+================================================================================
+
+Q: "You're building a Playwright automation framework from scratch. Your tech
+   lead asks you to explain how the four main OOP principles (Encapsulation,
+   Inheritance, Polymorphism, Abstraction) apply specifically to your framework
+   design. Give a concrete example of each principle using Playwright code."
+
+A: ENCAPSULATION:
+   Helps me keep locators and page actions inside Page Object classes instead of
+   exposing them directly to tests. That improves maintainability because tests
+   only call methods like login() instead of interacting with raw locators.
+
+   Example:
+   ----------------------------------------------------------------------------
+   class LoginPage {
+     private username = '#username';
+
+     async login(user: string) {
+       await this.page.locator(this.username).fill(user);
+     }
+   }
+   ----------------------------------------------------------------------------
+
+   INHERITANCE:
+   Helps reuse common functionality through a BasePage, like click, wait, or
+   navigation methods, which child pages can inherit.
+
+   Example:
+   ----------------------------------------------------------------------------
+   class BasePage {
+     async click(locator: string) {
+       await this.page.locator(locator).click();
+     }
+   }
+
+   class LoginPage extends BasePage {}
+   ----------------------------------------------------------------------------
+
+   POLYMORPHISM:
+   Gives flexibility—for example, the same login() method can support
+   username/password login or token-based login with different implementations.
+
+   Example:
+   ----------------------------------------------------------------------------
+   login(user: string, pass: string)
+   login(token: string)
+   ----------------------------------------------------------------------------
+
+   ABSTRACTION:
+   Hides implementation complexity from tests. Instead of tests knowing locator
+   details, they simply call business-level methods.
+
+   Example:
+   ----------------------------------------------------------------------------
+   await loginPage.login('admin', 'pass');
+   ----------------------------------------------------------------------------
+
+   This keeps tests clean, reusable, and easier to maintain in large frameworks.
+
+   Interviewer tip: They're checking whether you understand OOP conceptually and
+   can apply it practically in real Playwright framework architecture.
+
+
+================================================================================
+QUESTION 2: Encapsulation Violation in POM
+================================================================================
+
+Q: "In your Page Object Model, you have locators like #login-btn and #username.
+   A junior developer on your team is accessing these locators directly from
+   test scripts instead of going through page methods. Why is this a violation
+   of Encapsulation? How would you enforce proper encapsulation in your POM
+   classes?"
+
+A: Accessing locators directly from test scripts breaks Encapsulation because
+   tests become tightly coupled to internal page structure. If a locator
+   changes, multiple test files may break instead of only the Page Object.
+   The purpose of POM is to hide implementation details and expose only business
+   actions like login() or submitForm().
+
+   To enforce proper encapsulation:
+   • Make locators private (private username = '#username')
+   • Only expose public methods like login(), submitForm(), etc.
+   • Use code review guidelines to prevent direct locator access
+   • Implement linting rules to catch violations
+
+
+================================================================================
+QUESTION 3: Inheritance to Avoid Code Duplication
+================================================================================
+
+Q: "You have three different page objects: LoginPage, DashboardPage, and
+   ProfilePage. All of them need the same waitForPageLoad() method and a
+   reference to the page object. How would you use Inheritance to avoid
+   duplicating this code across all three classes?"
+ 
+A: I would create a reusable BasePage class containing common functionality like
+   the Playwright page reference and shared methods such as waitForPageLoad().
+   Then all page classes would extend that base class instead of duplicating the
+   same code.
+
+   Example:
+   ----------------------------------------------------------------------------
+   import { Page } from '@playwright/test';
+
+   class BasePage {
+     constructor(protected page: Page) {}
+
+     async waitForPageLoad() {
+       await this.page.waitForLoadState('networkidle');
+     }
+   }
+
+   class LoginPage extends BasePage {
+     async login(user: string, pass: string) {
+       await this.page.fill('#username', user);
+       await this.page.fill('#password', pass);
+       await this.page.click('#login');
+     }
+   }
+
+   class DashboardPage extends BasePage {
+     async openReports() {
+       await this.page.click('#reports');
+     }
+   }
+
+   class ProfilePage extends BasePage {
+     async updateProfile() {
+       await this.page.click('#save-profile');
+     }
+   }
+   ----------------------------------------------------------------------------
+
+   This reduces duplication, improves maintainability, and keeps shared behavior
+   centralized.
+
+   Interviewer tip: They're checking whether you can design scalable framework
+   architecture using inheritance and reusable base classes.
+
+
+================================================================================
+QUESTION 4: Polymorphism with Payment Gateways
+================================================================================
+
+Q: "You have two different payment gateways: Stripe and PayPal. Both need a
+   processPayment(amount) method, but the implementation is completely
+   different. How would you use Polymorphism to write a single test that works
+   with any payment gateway without changing the test logic?"
+
+A: I would create a common interface or parent class with a processPayment()
+   method, and then implement it differently for Stripe and PayPal. The test
+   would work against the common contract instead of knowing gateway-specific
+   details. That's polymorphism—the same method behaving differently based on
+   the object passed.
+
+   Example:
+   ----------------------------------------------------------------------------
+   class PaymentGateway {
+     processPayment(amount: number): Promise<void>;
+   }
+
+   class StripePayment extends PaymentGateway {
+     async processPayment(amount: number) {
+       console.log(`Processing ${amount} via Stripe`);
+     }
+   }
+
+   class PayPalPayment extends PaymentGateway {
+     async processPayment(amount: number) {
+       console.log(`Processing ${amount} via PayPal`);
+     }
+   }
+   ----------------------------------------------------------------------------
+
+   Single reusable test logic:
+   ----------------------------------------------------------------------------
+   async function executePayment(gateway: PaymentGateway) {
+     await gateway.processPayment(500);
+   }
+
+   await executePayment(new StripePayment());
+   await executePayment(new PayPalPayment());
+   ----------------------------------------------------------------------------
+
+   This keeps the test scalable because adding a new gateway like RazorPay later
+   doesn't require changing the core test flow.
+
+   Interviewer tip: They're checking whether you understand practical
+   polymorphism and how it improves framework extensibility and maintainability.
+
+
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================
